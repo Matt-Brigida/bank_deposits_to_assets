@@ -23,12 +23,6 @@ dep_asset = grouped["dep"] / grouped["asset"]
 dep_asset = pd.DataFrame(dep_asset)
 dep_asset.rename(columns={ dep_asset.columns[0]: "Deposits to Assets" }, inplace = True)
 
-# seaborn-----
-# plt.style.use("dark_background")
-# all_plot = sns.lineplot(data = dep_asset).set_title("Deposits to Assets")
-# plt.xticks(rotation = 'vertical')
-# all_fig = all_plot.get_figure()
-# all_fig.savefig("all_deposit_plot.png")
 # plotly-----
 all_fig = px.line(dep_asset, y="Deposits to Assets", title="Total Bank Deposits to Assets Over Time", template="plotly_dark")
 all_fig.write_html("all_deposit_plot.html")
@@ -47,7 +41,16 @@ By size:
 Spit the data into quartiles.
 
 
+#+begin_src python :session py :exports none :results none
+all_quarters = panel['quarter'].unique()
+quantiles = pd.DateFrame([panel[panel['quarter'] == q]['asset'].quantile([0.25,0.5,0.75]) for q in all_quarters])
+quantiles.set_index(all_quarters, inplace=True)
 
+panel_small = panel[panel["asset"] ]
+
+grouped_b = panel_b[["quarter", "dep", "asset"]].groupby(["quarter"]).sum()
+
+#+end_src
 
 By MDI Status:
 

@@ -42,15 +42,75 @@ Spit the data into quartiles.
 
 
 #+begin_src python :session py :exports none :results none
+### small-----
 all_quarters = panel['quarter'].unique()
-quantiles = pd.DateFrame([panel[panel['quarter'] == q]['asset'].quantile([0.25,0.5,0.75]) for q in all_quarters])
+quantiles = pd.DataFrame([panel[panel['quarter'] == q]['asset'].quantile([0.25,0.5,0.75]) for q in all_quarters])
 quantiles.set_index(all_quarters, inplace=True)
 
-panel_small = panel[panel["asset"] ]
+# for each quarter I want to subset the panel to only those banks with given assets, and then groupby.
+panel_small = [pd.DataFrame(panel[(panel['quarter'] == q) & (panel['asset'] < quantiles.loc[q, 0.25])][["quarter", "dep", "asset"]].groupby(["quarter"]).sum()) for q in all_quarters]
 
-grouped_b = panel_b[["quarter", "dep", "asset"]].groupby(["quarter"]).sum()
+small_df = pd.DataFrame(panel_small[0])
 
+grouped_small = small_df.append([pd.DataFrame(panel_small[i]) for i in range(1, 115)])
+
+dep_asset_small = grouped_small["dep"] / grouped_small["asset"]
+
+### middle_low-----
+# for each quarter I want to subset the panel to only those banks with given assets, and then groupby.
+panel_middle_low = [pd.DataFrame(panel[(panel['quarter'] == q) & (panel['asset'] > quantiles.loc[q, 0.25]) & (panel['asset'] < quantiles.loc[q, 0.50])][["quarter", "dep", "asset"]].groupby(["quarter"]).sum()) for q in all_quarters]
+
+middle_low_df = pd.DataFrame(panel_middle_low[0])
+
+grouped_middle_low = middle_low_df.append([pd.DataFrame(panel_middle_low[i]) for i in range(1, 115)])
+
+dep_asset_middle_low = grouped_middle_low["dep"] / grouped_middle_low["asset"]
+
+### middle_high-----
+# for each quarter I want to subset the panel to only those banks with given assets, and then groupby.
+panel_middle_high = [pd.DataFrame(panel[(panel['quarter'] == q) & (panel['asset'] > quantiles.loc[q, 0.50]) & (panel['asset'] < quantiles.loc[q, 0.75])][["quarter", "dep", "asset"]].groupby(["quarter"]).sum()) for q in all_quarters]
+
+middle_high_df = pd.DataFrame(panel_middle_high[0])
+
+grouped_middle_high = middle_high_df.append([pd.DataFrame(panel_middle_high[i]) for i in range(1, 115)])
+
+dep_asset_middle_high = grouped_middle_high["dep"] / grouped_middle_high["asset"]
+
+
+### large-----
+# for each quarter I want to subset the panel to only those banks with given assets, and then groupby.
+panel_large = [pd.DataFrame(panel[(panel['quarter'] == q) & (panel['asset'] > quantiles.loc[q, 0.75])][["quarter", "dep", "asset"]].groupby(["quarter"]).sum()) for q in all_quarters]
+
+large_df = pd.DataFrame(panel_large[0])
+
+grouped_large = large_df.append([pd.DataFrame(panel_large[i]) for i in range(1, 115)])
+
+dep_asset_large = grouped_large["dep"] / grouped_large["asset"]
 #+end_src
+
+
+#+begin_src python :session py :exports none :results none
+dep_asset_small = pd.DataFrame(dep_asset_small)
+dep_asset_small.rename(columns={ dep_asset_small.columns[0]: "Small Banks" }, inplace=True)
+dep_asset_middle_low = pd.DataFrame(dep_asset_middle_low)
+dep_asset_middle_low.rename(columns={ dep_asset_middle_low.columns[0]: "Middle_low Banks" }, inplace=True)
+dep_asset_middle_high = pd.DataFrame(dep_asset_middle_high)
+dep_asset_middle_high.rename(columns={ dep_asset_middle_high.columns[0]: "Middle_high Banks" }, inplace=True)
+dep_asset_large = pd.DataFrame(dep_asset_large)
+dep_asset_large.rename(columns={ dep_asset_large.columns[0]: "Large Banks" }, inplace=True)
+dep_asset_by_size = dep_asset_small.join(dep_asset_middle_low, how = "outer")
+dep_asset_by_size = dep_asset_by_size.join(dep_asset_middle_high, how = "outer")
+dep_asset_by_size = dep_asset_by_size.join(dep_asset_large, how = "outer")
+
+
+size_fig = px.line(dep_asset_by_size, y=["Small Banks", "Middle_low Banks", "Middle_high Banks", "Large Banks"], title="Bank Deposits to Assets by Bank Size", template="plotly_dark")
+size_fig.write_html("size_deposit_plot.html")
+#+end_src
+
+
+#+begin_export html
+<iframe src="./size_deposit_plot.html" width="100%" height="500px"></iframe>
+#+end_export
 
 By MDI Status:
 
